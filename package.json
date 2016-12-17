@@ -1,0 +1,22 @@
+{
+  "name": "EthPrivTestnet",
+  "repository": "augustolemble.com",
+  "description": "Scripts to run easily an Etheruem private testnet locally with already founded and randomly generated accounts",
+  "authors": "Augusto Lemble <me@augustolemble.com>",
+  "version": "0.0.1",
+  "main": "webpack-prod.config.js",
+  "scripts": {
+    "start": "npm run accounts 10 && npm run init && npm run mine",
+    "mine": "node blockchain.js mine",
+    "init": "node blockchain.js init",
+    "accounts": "node blockchain.js accounts",
+    "clean": "rm -r blockchain/geth/* blockchain/keystore/* blockchain/passwords/*",
+    "console": "go-ethereum/build/bin/geth --networkid 123456 --datadir=blockchain console"
+  },
+  "dependencies": {
+    "async": "^2.0.1",
+    "keythereum": "^0.3.2",
+    "node-fetch": "^1.6.3"
+  },
+  "devDependencies": {}
+}

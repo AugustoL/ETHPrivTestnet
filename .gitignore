@@ -1,0 +1,8 @@
+node_modules
+npm-debug.log
+blockchain/geth/*
+blockchain/keystore/*
+blockchain/passwords/*
+blockchain/accounts.json
+blockchain/genesis.json
+blockchain/history

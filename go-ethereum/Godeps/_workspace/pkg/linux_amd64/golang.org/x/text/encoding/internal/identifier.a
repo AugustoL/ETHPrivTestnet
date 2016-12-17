@@ -1,0 +1,281 @@
+!<arch>
+__.PKGDEF       0           0     0     644     10073     `
+go object linux amd64 go1.6.2 X:none
+build id "38ec3c1ab28578d57ebfde8312754e48d98a797e"
+
+$$
+package identifier
+	type @"".MIB uint16
+	type @"".Interface interface { ID() (@"".mib @"".MIB, @"".other string) }
+	const @"".Unofficial @"".MIB = 0x2710
+	const @"".Replacement @"".MIB = 0x2711
+	const @"".XUserDefined @"".MIB = 0x2712
+	const @"".MacintoshCyrillic @"".MIB = 0x2713
+	const @"".ASCII @"".MIB = 0x3
+	const @"".ISOLatin1 @"".MIB = 0x4
+	const @"".ISOLatin2 @"".MIB = 0x5
+	const @"".ISOLatin3 @"".MIB = 0x6
+	const @"".ISOLatin4 @"".MIB = 0x7
+	const @"".ISOLatinCyrillic @"".MIB = 0x8
+	const @"".ISOLatinArabic @"".MIB = 0x9
+	const @"".ISOLatinGreek @"".MIB = 0xa
+	const @"".ISOLatinHebrew @"".MIB = 0xb
+	const @"".ISOLatin5 @"".MIB = 0xc
+	const @"".ISOLatin6 @"".MIB = 0xd
+	const @"".ISOTextComm @"".MIB = 0xe
+	const @"".HalfWidthKatakana @"".MIB = 0xf
+	const @"".JISEncoding @"".MIB = 0x10
+	const @"".ShiftJIS @"".MIB = 0x11
+	const @"".EUCPkdFmtJapanese @"".MIB = 0x12
+	const @"".EUCFixWidJapanese @"".MIB = 0x13
+	const @"".ISO4UnitedKingdom @"".MIB = 0x14
+	const @"".ISO11SwedishForNames @"".MIB = 0x15
+	const @"".ISO15Italian @"".MIB = 0x16
+	const @"".ISO17Spanish @"".MIB = 0x17
+	const @"".ISO21German @"".MIB = 0x18
+	const @"".ISO60Norwegian1 @"".MIB = 0x19
+	const @"".ISO69French @"".MIB = 0x1a
+	const @"".ISO10646UTF1 @"".MIB = 0x1b
+	const @"".ISO646basic1983 @"".MIB = 0x1c
+	const @"".INVARIANT @"".MIB = 0x1d
+	const @"".ISO2IntlRefVersion @"".MIB = 0x1e
+	const @"".NATSSEFI @"".MIB = 0x1f
+	const @"".NATSSEFIADD @"".MIB = 0x20
+	const @"".NATSDANO @"".MIB = 0x21
+	const @"".NATSDANOADD @"".MIB = 0x22
+	const @"".ISO10Swedish @"".MIB = 0x23
+	const @"".KSC56011987 @"".MIB = 0x24
+	const @"".ISO2022KR @"".MIB = 0x25
+	const @"".EUCKR @"".MIB = 0x26
+	const @"".ISO2022JP @"".MIB = 0x27
+	const @"".ISO2022JP2 @"".MIB = 0x28
+	const @"".ISO13JISC6220jp @"".MIB = 0x29
+	const @"".ISO14JISC6220ro @"".MIB = 0x2a
+	const @"".ISO16Portuguese @"".MIB = 0x2b
+	const @"".ISO18Greek7Old @"".MIB = 0x2c
+	const @"".ISO19LatinGreek @"".MIB = 0x2d
+	const @"".ISO25French @"".MIB = 0x2e
+	const @"".ISO27LatinGreek1 @"".MIB = 0x2f
+	const @"".ISO5427Cyrillic @"".MIB = 0x30
+	const @"".ISO42JISC62261978 @"".MIB = 0x31
+	const @"".ISO47BSViewdata @"".MIB = 0x32
+	const @"".ISO49INIS @"".MIB = 0x33
+	const @"".ISO50INIS8 @"".MIB = 0x34
+	const @"".ISO51INISCyrillic @"".MIB = 0x35
+	const @"".ISO54271981 @"".MIB = 0x36
+	const @"".ISO5428Greek @"".MIB = 0x37
+	const @"".ISO57GB1988 @"".MIB = 0x38
+	const @"".ISO58GB231280 @"".MIB = 0x39
+	const @"".ISO61Norwegian2 @"".MIB = 0x3a
+	const @"".ISO70VideotexSupp1 @"".MIB = 0x3b
+	const @"".ISO84Portuguese2 @"".MIB = 0x3c
+	const @"".ISO85Spanish2 @"".MIB = 0x3d
+	const @"".ISO86Hungarian @"".MIB = 0x3e
+	const @"".ISO87JISX0208 @"".MIB = 0x3f
+	const @"".ISO88Greek7 @"".MIB = 0x40
+	const @"".ISO89ASMO449 @"".MIB = 0x41
+	const @"".ISO90 @"".MIB = 0x42
+	const @"".ISO91JISC62291984a @"".MIB = 0x43
+	const @"".ISO92JISC62991984b @"".MIB = 0x44
+	const @"".ISO93JIS62291984badd @"".MIB = 0x45
+	const @"".ISO94JIS62291984hand @"".MIB = 0x46
+	const @"".ISO95JIS62291984handadd @"".MIB = 0x47
+	const @"".ISO96JISC62291984kana @"".MIB = 0x48
+	const @"".ISO2033 @"".MIB = 0x49
+	const @"".ISO99NAPLPS @"".MIB = 0x4a
+	const @"".ISO102T617bit @"".MIB = 0x4b
+	const @"".ISO103T618bit @"".MIB = 0x4c
+	const @"".ISO111ECMACyrillic @"".MIB = 0x4d
+	const @"".ISO121Canadian1 @"".MIB = 0x4e
+	const @"".ISO122Canadian2 @"".MIB = 0x4f
+	const @"".ISO123CSAZ24341985gr @"".MIB = 0x50
+	const @"".ISO88596E @"".MIB = 0x51
+	const @"".ISO88596I @"".MIB = 0x52
+	const @"".ISO128T101G2 @"".MIB = 0x53
+	const @"".ISO88598E @"".MIB = 0x54
+	const @"".ISO88598I @"".MIB = 0x55
+	const @"".ISO139CSN369103 @"".MIB = 0x56
+	const @"".ISO141JUSIB1002 @"".MIB = 0x57
+	const @"".ISO143IECP271 @"".MIB = 0x58
+	const @"".ISO146Serbian @"".MIB = 0x59
+	const @"".ISO147Macedonian @"".MIB = 0x5a
+	const @"".ISO150GreekCCITT @"".MIB = 0x5b
+	const @"".ISO151Cuba @"".MIB = 0x5c
+	const @"".ISO6937Add @"".MIB = 0x5d
+	const @"".ISO153GOST1976874 @"".MIB = 0x5e
+	const @"".ISO8859Supp @"".MIB = 0x5f
+	const @"".ISO10367Box @"".MIB = 0x60
+	const @"".ISO158Lap @"".MIB = 0x61
+	const @"".ISO159JISX02121990 @"".MIB = 0x62
+	const @"".ISO646Danish @"".MIB = 0x63
+	const @"".USDK @"".MIB = 0x64
+	const @"".DKUS @"".MIB = 0x65
+	const @"".KSC5636 @"".MIB = 0x66
+	const @"".Unicode11UTF7 @"".MIB = 0x67
+	const @"".ISO2022CN @"".MIB = 0x68
+	const @"".ISO2022CNEXT @"".MIB = 0x69
+	const @"".UTF8 @"".MIB = 0x6a
+	const @"".ISO885913 @"".MIB = 0x6d
+	const @"".ISO885914 @"".MIB = 0x6e
+	const @"".ISO885915 @"".MIB = 0x6f
+	const @"".ISO885916 @"".MIB = 0x70
+	const @"".GBK @"".MIB = 0x71
+	const @"".GB18030 @"".MIB = 0x72
+	const @"".OSDEBCDICDF0415 @"".MIB = 0x73
+	const @"".OSDEBCDICDF03IRV @"".MIB = 0x74
+	const @"".OSDEBCDICDF041 @"".MIB = 0x75
+	const @"".ISO115481 @"".MIB = 0x76
+	const @"".KZ1048 @"".MIB = 0x77
+	const @"".Unicode @"".MIB = 0x3e8
+	const @"".UCS4 @"".MIB = 0x3e9
+	const @"".UnicodeASCII @"".MIB = 0x3ea
+	const @"".UnicodeLatin1 @"".MIB = 0x3eb
+	const @"".UnicodeJapanese @"".MIB = 0x3ec
+	const @"".UnicodeIBM1261 @"".MIB = 0x3ed
+	const @"".UnicodeIBM1268 @"".MIB = 0x3ee
+	const @"".UnicodeIBM1276 @"".MIB = 0x3ef
+	const @"".UnicodeIBM1264 @"".MIB = 0x3f0
+	const @"".UnicodeIBM1265 @"".MIB = 0x3f1
+	const @"".Unicode11 @"".MIB = 0x3f2
+	const @"".SCSU @"".MIB = 0x3f3
+	const @"".UTF7 @"".MIB = 0x3f4
+	const @"".UTF16BE @"".MIB = 0x3f5
+	const @"".UTF16LE @"".MIB = 0x3f6
+	const @"".UTF16 @"".MIB = 0x3f7
+	const @"".CESU8 @"".MIB = 0x3f8
+	const @"".UTF32 @"".MIB = 0x3f9
+	const @"".UTF32BE @"".MIB = 0x3fa
+	const @"".UTF32LE @"".MIB = 0x3fb
+	const @"".BOCU1 @"".MIB = 0x3fc
+	const @"".Windows30Latin1 @"".MIB = 0x7d0
+	const @"".Windows31Latin1 @"".MIB = 0x7d1
+	const @"".Windows31Latin2 @"".MIB = 0x7d2
+	const @"".Windows31Latin5 @"".MIB = 0x7d3
+	const @"".HPRoman8 @"".MIB = 0x7d4
+	const @"".AdobeStandardEncoding @"".MIB = 0x7d5
+	const @"".VenturaUS @"".MIB = 0x7d6
+	const @"".VenturaInternational @"".MIB = 0x7d7
+	const @"".DECMCS @"".MIB = 0x7d8
+	const @"".PC850Multilingual @"".MIB = 0x7d9
+	const @"".PC8DanishNorwegian @"".MIB = 0x7dc
+	const @"".PC862LatinHebrew @"".MIB = 0x7dd
+	const @"".PC8Turkish @"".MIB = 0x7de
+	const @"".IBMSymbols @"".MIB = 0x7df
+	const @"".IBMThai @"".MIB = 0x7e0
+	const @"".HPLegal @"".MIB = 0x7e1
+	const @"".HPPiFont @"".MIB = 0x7e2
+	const @"".HPMath8 @"".MIB = 0x7e3
+	const @"".HPPSMath @"".MIB = 0x7e4
+	const @"".HPDesktop @"".MIB = 0x7e5
+	const @"".VenturaMath @"".MIB = 0x7e6
+	const @"".MicrosoftPublishing @"".MIB = 0x7e7
+	const @"".Windows31J @"".MIB = 0x7e8
+	const @"".GB2312 @"".MIB = 0x7e9
+	const @"".Big5 @"".MIB = 0x7ea
+	const @"".Macintosh @"".MIB = 0x7eb
+	const @"".IBM037 @"".MIB = 0x7ec
+	const @"".IBM038 @"".MIB = 0x7ed
+	const @"".IBM273 @"".MIB = 0x7ee
+	const @"".IBM274 @"".MIB = 0x7ef
+	const @"".IBM275 @"".MIB = 0x7f0
+	const @"".IBM277 @"".MIB = 0x7f1
+	const @"".IBM278 @"".MIB = 0x7f2
+	const @"".IBM280 @"".MIB = 0x7f3
+	const @"".IBM281 @"".MIB = 0x7f4
+	const @"".IBM284 @"".MIB = 0x7f5
+	const @"".IBM285 @"".MIB = 0x7f6
+	const @"".IBM290 @"".MIB = 0x7f7
+	const @"".IBM297 @"".MIB = 0x7f8
+	const @"".IBM420 @"".MIB = 0x7f9
+	const @"".IBM423 @"".MIB = 0x7fa
+	const @"".IBM424 @"".MIB = 0x7fb
+	const @"".PC8CodePage437 @"".MIB = 0x7db
+	const @"".IBM500 @"".MIB = 0x7fc
+	const @"".IBM851 @"".MIB = 0x7fd
+	const @"".PCp852 @"".MIB = 0x7da
+	const @"".IBM855 @"".MIB = 0x7fe
+	const @"".IBM857 @"".MIB = 0x7ff
+	const @"".IBM860 @"".MIB = 0x800
+	const @"".IBM861 @"".MIB = 0x801
+	const @"".IBM863 @"".MIB = 0x802
+	const @"".IBM864 @"".MIB = 0x803
+	const @"".IBM865 @"".MIB = 0x804
+	const @"".IBM868 @"".MIB = 0x805
+	const @"".IBM869 @"".MIB = 0x806
+	const @"".IBM870 @"".MIB = 0x807
+	const @"".IBM871 @"".MIB = 0x808
+	const @"".IBM880 @"".MIB = 0x809
+	const @"".IBM891 @"".MIB = 0x80a
+	const @"".IBM903 @"".MIB = 0x80b
+	const @"".IBBM904 @"".MIB = 0x80c
+	const @"".IBM905 @"".MIB = 0x80d
+	const @"".IBM918 @"".MIB = 0x80e
+	const @"".IBM1026 @"".MIB = 0x80f
+	const @"".IBMEBCDICATDE @"".MIB = 0x810
+	const @"".EBCDICATDEA @"".MIB = 0x811
+	const @"".EBCDICCAFR @"".MIB = 0x812
+	const @"".EBCDICDKNO @"".MIB = 0x813
+	const @"".EBCDICDKNOA @"".MIB = 0x814
+	const @"".EBCDICFISE @"".MIB = 0x815
+	const @"".EBCDICFISEA @"".MIB = 0x816
+	const @"".EBCDICFR @"".MIB = 0x817
+	const @"".EBCDICIT @"".MIB = 0x818
+	const @"".EBCDICPT @"".MIB = 0x819
+	const @"".EBCDICES @"".MIB = 0x81a
+	const @"".EBCDICESA @"".MIB = 0x81b
+	const @"".EBCDICESS @"".MIB = 0x81c
+	const @"".EBCDICUK @"".MIB = 0x81d
+	const @"".EBCDICUS @"".MIB = 0x81e
+	const @"".Unknown8BiT @"".MIB = 0x81f
+	const @"".Mnemonic @"".MIB = 0x820
+	const @"".Mnem @"".MIB = 0x821
+	const @"".VISCII @"".MIB = 0x822
+	const @"".VIQR @"".MIB = 0x823
+	const @"".KOI8R @"".MIB = 0x824
+	const @"".HZGB2312 @"".MIB = 0x825
+	const @"".IBM866 @"".MIB = 0x826
+	const @"".PC775Baltic @"".MIB = 0x827
+	const @"".KOI8U @"".MIB = 0x828
+	const @"".IBM00858 @"".MIB = 0x829
+	const @"".IBM00924 @"".MIB = 0x82a
+	const @"".IBM01140 @"".MIB = 0x82b
+	const @"".IBM01141 @"".MIB = 0x82c
+	const @"".IBM01142 @"".MIB = 0x82d
+	const @"".IBM01143 @"".MIB = 0x82e
+	const @"".IBM01144 @"".MIB = 0x82f
+	const @"".IBM01145 @"".MIB = 0x830
+	const @"".IBM01146 @"".MIB = 0x831
+	const @"".IBM01147 @"".MIB = 0x832
+	const @"".IBM01148 @"".MIB = 0x833
+	const @"".IBM01149 @"".MIB = 0x834
+	const @"".Big5HKSCS @"".MIB = 0x835
+	const @"".IBM1047 @"".MIB = 0x836
+	const @"".PTCP154 @"".MIB = 0x837
+	const @"".Amiga1251 @"".MIB = 0x838
+	const @"".KOI7switched @"".MIB = 0x839
+	const @"".BRF @"".MIB = 0x83a
+	const @"".TSCII @"".MIB = 0x83b
+	const @"".CP51932 @"".MIB = 0x83c
+	const @"".Windows874 @"".MIB = 0x83d
+	const @"".Windows1250 @"".MIB = 0x8ca
+	const @"".Windows1251 @"".MIB = 0x8cb
+	const @"".Windows1252 @"".MIB = 0x8cc
+	const @"".Windows1253 @"".MIB = 0x8cd
+	const @"".Windows1254 @"".MIB = 0x8ce
+	const @"".Windows1255 @"".MIB = 0x8cf
+	const @"".Windows1256 @"".MIB = 0x8d0
+	const @"".Windows1257 @"".MIB = 0x8d1
+	const @"".Windows1258 @"".MIB = 0x8d2
+	const @"".TIS620 @"".MIB = 0x8d3
+	const @"".CP50220 @"".MIB = 0x8d4
+
+$$
+ _go_.o          0           0     0     644     4203      `
+go object linux amd64 go1.6.2 X:none
+
+!
+  go13ld ˛"".Interface.ID Ä  ÄdHã%    H;av`HÉÏ HãY HÖ€tHç|$(H9;uHâ#1€1€Hâ\$@Hâ\$HHã\$0Hâ$Hã\$(Hã[ ˇ”H∑\$HãL$HãD$fâ\$8HâL$@HâD$HHÉƒ √Ë    ÎäÃÃÃÃÃÃÃÃÃÃ
+      í       ‡  0runtime.morestack_noctxt   P@  "".other 0type.string "".mib  type."".MIB ""..this  "type."".Interface @[? Ä Ä 
+ I7 Tgclocals¬∑1347047f6245a35b91e9a4f213167d52 Tgclocals¬∑33cdeccccebe80329f1fdbee7f5874cb   <autogenerated>˛Tgclocals¬∑33cdeccccebe80329f1fdbee7f5874cb           ˛Tgclocals¬∑1347047f6245a35b91e9a4f213167d52             ˛"runtime.gcbits.01    ˛>go.string.hdr."*identifier.MIB"                       6go.string."*identifier.MIB"   ˛6go.string."*identifier.MIB"     *identifier.MIB  ˛type.*"".MIB  ê  ê              ùØB∂ 6                                                
+0†  runtime.algarray   @  "runtime.gcbits.01   P  >go.string.hdr."*identifier.MIB"   p  *go.weak.type.**"".MIB   Ä  type."".MIB   ˛runtime.gcbits.      ˛<go.string.hdr."identifier.MIB"                       4go.string."identifier.MIB"   ˛4go.string."identifier.MIB"    identifier.MIB  ˛&go.string.hdr."MIB"                       go.string."MIB"   ˛go.string."MIB"   MIB  ˛|go.string.hdr."golang.org/x/text/encoding/internal/identifier"             .          tgo.string."golang.org/x/text/encoding/internal/identifier"   ˛tgo.string."golang.org/x/text/encoding/internal/identifier" `  ^golang.org/x/text/encoding/internal/identifier  ˛"go.importpath."".             .          tgo.string."golang.org/x/text/encoding/internal/identifier"   ˛type."".MIB  –  –               ¯π∏˝ â                                                                                0`  runtime.algarray   @  runtime.gcbits.   P  <go.string.hdr."identifier.MIB"   p  type.*"".MIB   `Ä type."".MIB   Ä  &go.string.hdr."MIB"   ê  "go.importpath."".   †– type."".MIB   ˛^go.string.hdr."func() (identifier.MIB, string)"                       Vgo.string."func() (identifier.MIB, string)"   ˛Vgo.string."func() (identifier.MIB, string)" @  @func() (identifier.MIB, string)  ˛8type.func() ("".MIB, string) ê  ê              /eN 3                                                                                                              0Ä  runtime.algarray   @  "runtime.gcbits.01   P  ^go.string.hdr."func() (identifier.MIB, string)"   p  Jgo.weak.type.*func() ("".MIB, string)   ê 8type.func() ("".MIB, string)   ¿ 8type.func() ("".MIB, string)     type."".MIB   Ä  type.string   ˛Ügo.typelink.func() (identifier.MIB, string)	func() ("".MIB, string)              8type.func() ("".MIB, string)   ˛Jgo.string.hdr."*identifier.Interface"                       Bgo.string."*identifier.Interface"   ˛Bgo.string."*identifier.Interface" 0  ,*identifier.Interface  ˛$type.*"".Interface  ê  ê              Pª˚ 6                                                
+0†  runtime.algarray   @  "runtime.gcbits.01   P  Jgo.string.hdr."*identifier.Interface"   p  6go.weak.type.**"".Interface   Ä  "type."".Interface   ˛"runtime.gcbits.03    ˛Hgo.string.hdr."identifier.Interface"                       @go.string."identifier.Interface"   ˛@go.string."identifier.Interface" 0  *identifier.Interface  ˛$go.string.hdr."ID"                       go.string."ID"   ˛go.string."ID"   ID  ˛2go.string.hdr."Interface"             	          *go.string."Interface"   ˛*go.string."Interface"    Interface  ˛"type."".Interface  ∞  ∞              §yÔ                                                                                                                               0‡  runtime.algarray   @  "runtime.gcbits.03   P  Hgo.string.hdr."identifier.Interface"   p  $type.*"".Interface   Ä∞ "type."".Interface   ∞  $go.string.hdr."ID"   –  8type.func() ("".MIB, string)   `‡ "type."".Interface   ‡  2go.string.hdr."Interface"     "go.importpath."".   Ä∞ "type."".Interface   ˛$"".Interface.ID¬∑f              "".Interface.ID   ˇˇgo13ld 
