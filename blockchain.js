@@ -10,8 +10,6 @@ const BLOCKCHAIN_PATH = __dirname+'/blockchain';
 
 const BASE_PASSWORD = "password";
 
-const ACCOUNTS = require('./blockchain/accounts');
-
 const PORT = "8545";
 
 const NETWORK_ID = "123456";
@@ -61,6 +59,8 @@ function getUserIP(callback){
 
 switch (args[0]) {
     case 'mine':
+        const ACCOUNTS = require('./blockchain/accounts');
+        
         getUserIP(function(ip){
             spanwChild(__dirname+'/go-ethereum/build/bin/geth', [
                 "--datadir="+BLOCKCHAIN_PATH,
