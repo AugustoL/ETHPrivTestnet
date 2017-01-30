@@ -16,10 +16,21 @@ const NETWORK_ID = "123456";
 
 const SEED_BALANCE = "20000000000000000000";
 
+const ACCOUNTS = require('./blockchain/accounts');
+
 var debug = false;
+
+const ACCOUNT = ACCOUNTS.admin.address;
+
+const ACCOUNT_INDEX = 0;
 
 if (args.indexOf('--debug') > 0)
     debug = true;
+if (args.indexOf('--acc') > 0){
+    const ACCOUNT_INDEX = args[ args.indexOf('--acc')+1 ];
+    const ACCOUNT = ACCOUNTS.users[ACCOUNT_INDEX].address;
+    console.log('Using account', ACCOUNT, 'on index', ACCOUNT_INDEX);
+}
 
 function spanwChild(process, args, callback){
     var callbackCalled = false;
@@ -59,8 +70,6 @@ function getUserIP(callback){
 
 switch (args[0]) {
     case 'mine':
-        const ACCOUNTS = require('./blockchain/accounts');
-        
         getUserIP(function(ip){
             spanwChild(__dirname+'/go-ethereum/build/bin/geth', [
                 "--datadir="+BLOCKCHAIN_PATH,
@@ -68,16 +77,17 @@ switch (args[0]) {
                 "--nodiscover", "--maxpeers=0",
                 "--fast",
                 "--rpc",
+                "--rpcapi", "eth,web3,net,personal,ssh,db",
                 "--rpcaddr", "localhost",
                 "--rpcport", PORT,
                 "--rpccorsdomain", "*",
                 "--verbosity=6",
                 "--nat", "extip:"+ip,
-                "--etherbase", ACCOUNTS.admin.address,
+                "--etherbase", ACCOUNT,
                 "--mine",
                 "--minerthreads", "1",
-                "--unlock", ACCOUNTS.admin.address,
-                "--password", BLOCKCHAIN_PATH+'/passwords/acc0'
+                "--unlock", ACCOUNT,
+                "--password", BLOCKCHAIN_PATH+'/passwords/acc'+ACCOUNT_INDEX
             ])
         });
     break;
@@ -138,7 +148,7 @@ switch (args[0]) {
                     	"timestamp": "0x0",
                     	"parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
                     	"extraData": "0x0",
-                    	"gasLimit": "0x4a817c800",
+                    	"gasLimit": "0xE8D4A51000",
                     	"difficulty": "0x200",
                     	"mixhash": "0x0000000000000000000000000000000000000000000000000000000000000000",
                         "coinbase": accounts.admin.address.substring(2),
