@@ -16,16 +16,17 @@ const NETWORK_ID = "123456";
 
 const SEED_BALANCE = "20000000000000000000";
 
-const ACCOUNTS = require('./blockchain/accounts');
+const ACCOUNTS = require('./blockchain/accounts') || {};
 
 var debug = false;
 
-const ACCOUNT = ACCOUNTS.admin.address;
+const ACCOUNT = ACCOUNTS.admin.address || '0x0';
 
 const ACCOUNT_INDEX = 0;
 
 if (args.indexOf('--debug') > 0)
     debug = true;
+
 if (args.indexOf('--acc') > 0){
     const ACCOUNT_INDEX = args[ args.indexOf('--acc')+1 ];
     const ACCOUNT = ACCOUNTS.users[ACCOUNT_INDEX].address;

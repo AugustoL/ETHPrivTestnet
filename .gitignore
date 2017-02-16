@@ -6,3 +6,6 @@ blockchain/passwords/*
 blockchain/accounts.json
 blockchain/genesis.json
 blockchain/history
+!blockchain
+!blockchain/passwords
+!blockchain/keystore
