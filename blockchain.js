@@ -18,6 +18,9 @@ const SEED_BALANCE = "20000000000000000000";
 
 const DEBUG = (args.indexOf('--debug') > 0);
 
+if (!fs.existsSync('./blockchain'))
+  fs.mkdirSync('./blockchain')
+
 if (!fs.existsSync('./blockchain/keystore'))
   fs.mkdirSync('./blockchain/keystore');
 
