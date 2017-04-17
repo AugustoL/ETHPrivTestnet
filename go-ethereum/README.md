@@ -8,7 +8,31 @@ https://camo.githubusercontent.com/915b7be44ada53c290eb157634330494ebe3e30a/6874
 [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/ethereum/go-ethereum?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
 Automated builds are available for stable releases and the unstable master branch.
-Binary archives are published at https://geth.ethereum.org/downloads/.
+Binary archives are published at https://geth.ethereum.org/downloads/.ç
+
+## ETHPrivTestnet changes
+
+consensus/ethash/consensus.go
+```
+func CalcDifficulty(config *params.ChainConfig, time, parentTime uint64, parentNumber, parentDiff *big.Int) *big.Int {
+  return big.NewInt(0x4000)
+
+  // if config.IsHomestead(new(big.Int).Add(parentNumber, common.Big1)) {
+	// 	return calcDifficultyHomestead(time, parentTime, parentNumber, parentDiff)
+	// }
+	// return calcDifficultyFrontier(time, parentTime, parentNumber, parentDiff)
+}
+```
+
+miner/worker.go
+```
+// this will ensure we're not going off too far in the future
+// if now := time.Now().Unix(); tstamp > now+1 {
+// 	wait := time.Duration(tstamp-now) * time.Second
+// 	log.Info("Mining too far in the future", "wait", common.PrettyDuration(wait))
+// 	time.Sleep(wait)
+// }
+```
 
 ## Building the source
 
@@ -16,7 +40,7 @@ For prerequisites and detailed build instructions please read the
 [Installation Instructions](https://github.com/ethereum/go-ethereum/wiki/Building-Ethereum)
 on the wiki.
 
-Building geth requires both a Go and a C compiler.
+Building geth requires both a Go (version 1.7 or later) and a C compiler.
 You can install them using your favourite package manager.
 Once the dependencies are installed, run
 
@@ -39,9 +63,7 @@ The go-ethereum project comes with several wrappers/executables found in the `cm
 | `evm` | Developer utility version of the EVM (Ethereum Virtual Machine) that is capable of running bytecode snippets within a configurable environment and execution mode. Its purpose is to allow insolated, fine-grained debugging of EVM opcodes (e.g. `evm --code 60ff60ff --debug`). |
 | `gethrpctest` | Developer utility tool to support our [ethereum/rpc-test](https://github.com/ethereum/rpc-tests) test suite which validates baseline conformity to the [Ethereum JSON RPC](https://github.com/ethereum/wiki/wiki/JSON-RPC) specs. Please see the [test suite's readme](https://github.com/ethereum/rpc-tests/blob/master/README.md) for details. |
 | `rlpdump` | Developer utility tool to convert binary RLP ([Recursive Length Prefix](https://github.com/ethereum/wiki/wiki/RLP)) dumps (data encoding used by the Ethereum protocol both network as well as consensus wise) to user friendlier hierarchical representation (e.g. `rlpdump --hex CE0183FFFFFFC4C304050583616263`). |
-| `bzzd`    | swarm daemon. This is the entrypoint for the swarm network. `bzzd --help` for command line options. See https://swarm-guide.readthedocs.io for swarm documentation. |
-| `bzzup`   | swarm command line file uploader. `bzzup --help` for command line options |
-| `bzzhash`   | command to calculate the swarm hash of a file or directory. `bzzhash --help` for command line options |
+| `swarm`    | swarm daemon and tools. This is the entrypoint for the swarm network. `swarm --help` for command line options and subcommands. See https://swarm-guide.readthedocs.io for swarm documentation. |
 
 ## Running geth
 
@@ -120,7 +142,7 @@ As a developer, sooner rather than later you'll want to start interacting with G
 network via your own programs and not manually through the console. To aid this, Geth has built in
 support for a JSON-RPC based APIs ([standard APIs](https://github.com/ethereum/wiki/wiki/JSON-RPC) and
 [Geth specific APIs](https://github.com/ethereum/go-ethereum/wiki/Management-APIs)). These can be
-exposed via HTTP, WebSockets and IPC (unix sockets on unix based platroms, and named pipes on Windows).
+exposed via HTTP, WebSockets and IPC (unix sockets on unix based platforms, and named pipes on Windows).
 
 The IPC interface is enabled by default and exposes all the APIs supported by Geth, whereas the HTTP
 and WS interfaces need to manually be enabled and only expose a subset of APIs due to security reasons.

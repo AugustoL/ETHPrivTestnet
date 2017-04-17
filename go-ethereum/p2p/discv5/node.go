@@ -17,7 +17,6 @@
 package discv5
 
 import (
-	"bytes"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"encoding/hex"
@@ -81,7 +80,7 @@ func (n *Node) addrEqual(a *net.UDPAddr) bool {
 	if ipv4 := a.IP.To4(); ipv4 != nil {
 		ip = ipv4
 	}
-	return n.UDP == uint16(a.Port) && bytes.Equal(n.IP, ip)
+	return n.UDP == uint16(a.Port) && n.IP.Equal(ip)
 }
 
 // Incomplete returns true for nodes with no IP address.
@@ -216,6 +215,20 @@ func MustParseNode(rawurl string) *Node {
 	return n
 }
 
+// MarshalText implements encoding.TextMarshaler.
+func (n *Node) MarshalText() ([]byte, error) {
+	return []byte(n.String()), nil
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (n *Node) UnmarshalText(text []byte) error {
+	dec, err := ParseNode(string(text))
+	if err == nil {
+		*n = *dec
+	}
+	return err
+}
+
 // type nodeQueue []*Node
 //
 // // pushNew adds n to the end if it is not present.
@@ -263,11 +276,8 @@ func (n NodeID) GoString() string {
 // HexID converts a hex string to a NodeID.
 // The string may be prefixed with 0x.
 func HexID(in string) (NodeID, error) {
-	if strings.HasPrefix(in, "0x") {
-		in = in[2:]
-	}
 	var id NodeID
-	b, err := hex.DecodeString(in)
+	b, err := hex.DecodeString(strings.TrimPrefix(in, "0x"))
 	if err != nil {
 		return id, err
 	} else if len(b) != len(id) {
@@ -301,7 +311,7 @@ func PubkeyID(pub *ecdsa.PublicKey) NodeID {
 // Pubkey returns the public key represented by the node ID.
 // It returns an error if the ID is not a point on the curve.
 func (id NodeID) Pubkey() (*ecdsa.PublicKey, error) {
-	p := &ecdsa.PublicKey{Curve: S256(), X: new(big.Int), Y: new(big.Int)}
+	p := &ecdsa.PublicKey{Curve: crypto.S256(), X: new(big.Int), Y: new(big.Int)}
 	half := len(id) / 2
 	p.X.SetBytes(id[:half])
 	p.Y.SetBytes(id[half:])

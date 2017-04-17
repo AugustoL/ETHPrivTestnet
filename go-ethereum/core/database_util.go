@@ -23,12 +23,13 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/ethereum/go-ethereum/logger"
-	"github.com/ethereum/go-ethereum/logger/glog"
+	"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rlp"
 )
@@ -38,12 +39,13 @@ var (
 	headBlockKey  = []byte("LastBlock")
 	headFastKey   = []byte("LastFast")
 
-	headerPrefix        = []byte("h") // headerPrefix + num (uint64 big endian) + hash -> header
-	tdSuffix            = []byte("t") // headerPrefix + num (uint64 big endian) + hash + tdSuffix -> td
-	numSuffix           = []byte("n") // headerPrefix + num (uint64 big endian) + numSuffix -> hash
-	blockHashPrefix     = []byte("H") // blockHashPrefix + hash -> num (uint64 big endian)
-	bodyPrefix          = []byte("b") // bodyPrefix + num (uint64 big endian) + hash -> block body
-	blockReceiptsPrefix = []byte("r") // blockReceiptsPrefix + num (uint64 big endian) + hash -> block receipts
+	headerPrefix        = []byte("h")   // headerPrefix + num (uint64 big endian) + hash -> header
+	tdSuffix            = []byte("t")   // headerPrefix + num (uint64 big endian) + hash + tdSuffix -> td
+	numSuffix           = []byte("n")   // headerPrefix + num (uint64 big endian) + numSuffix -> hash
+	blockHashPrefix     = []byte("H")   // blockHashPrefix + hash -> num (uint64 big endian)
+	bodyPrefix          = []byte("b")   // bodyPrefix + num (uint64 big endian) + hash -> block body
+	blockReceiptsPrefix = []byte("r")   // blockReceiptsPrefix + num (uint64 big endian) + hash -> block receipts
+	preimagePrefix      = "secure-key-" // preimagePrefix + hash -> preimage
 
 	txMetaSuffix   = []byte{0x01}
 	receiptsPrefix = []byte("receipts-")
@@ -63,6 +65,11 @@ var (
 	oldBlockHashPrefix     = []byte("block-hash-") // [deprecated by the header/block split, remove eventually]
 
 	ChainConfigNotFoundErr = errors.New("ChainConfig not found") // general config not found error
+
+	mipmapBloomMu sync.Mutex // protect against race condition when updating mipmap blooms
+
+	preimageCounter    = metrics.NewCounter("db/preimage/total")
+	preimageHitCounter = metrics.NewCounter("db/preimage/hits")
 )
 
 // encodeBlockNumber encodes a block number as big endian uint64
@@ -99,7 +106,7 @@ func GetBlockNumber(db ethdb.Database, hash common.Hash) uint64 {
 		}
 		header := new(types.Header)
 		if err := rlp.Decode(bytes.NewReader(data), header); err != nil {
-			glog.Fatalf("failed to decode block header: %v", err)
+			log.Crit("Failed to decode block header", "err", err)
 		}
 		return header.Number.Uint64()
 	}
@@ -159,7 +166,7 @@ func GetHeader(db ethdb.Database, hash common.Hash, number uint64) *types.Header
 	}
 	header := new(types.Header)
 	if err := rlp.Decode(bytes.NewReader(data), header); err != nil {
-		glog.V(logger.Error).Infof("invalid block header RLP for hash %x: %v", hash, err)
+		log.Error("Invalid block header RLP", "hash", hash, "err", err)
 		return nil
 	}
 	return header
@@ -183,7 +190,7 @@ func GetBody(db ethdb.Database, hash common.Hash, number uint64) *types.Body {
 	}
 	body := new(types.Body)
 	if err := rlp.Decode(bytes.NewReader(data), body); err != nil {
-		glog.V(logger.Error).Infof("invalid block body RLP for hash %x: %v", hash, err)
+		log.Error("Invalid block body RLP", "hash", hash, "err", err)
 		return nil
 	}
 	return body
@@ -201,7 +208,7 @@ func GetTd(db ethdb.Database, hash common.Hash, number uint64) *big.Int {
 	}
 	td := new(big.Int)
 	if err := rlp.Decode(bytes.NewReader(data), td); err != nil {
-		glog.V(logger.Error).Infof("invalid block total difficulty RLP for hash %x: %v", hash, err)
+		log.Error("Invalid block total difficulty RLP", "hash", hash, "err", err)
 		return nil
 	}
 	return td
@@ -239,7 +246,7 @@ func GetBlockReceipts(db ethdb.Database, hash common.Hash, number uint64) types.
 	}
 	storageReceipts := []*types.ReceiptForStorage{}
 	if err := rlp.DecodeBytes(data, &storageReceipts); err != nil {
-		glog.V(logger.Error).Infof("invalid receipt array RLP for hash %x: %v", hash, err)
+		log.Error("Invalid receipt array RLP", "hash", hash, "err", err)
 		return nil
 	}
 	receipts := make(types.Receipts, len(storageReceipts))
@@ -278,15 +285,15 @@ func GetTransaction(db ethdb.Database, hash common.Hash) (*types.Transaction, co
 }
 
 // GetReceipt returns a receipt by hash
-func GetReceipt(db ethdb.Database, txHash common.Hash) *types.Receipt {
-	data, _ := db.Get(append(receiptsPrefix, txHash[:]...))
+func GetReceipt(db ethdb.Database, hash common.Hash) *types.Receipt {
+	data, _ := db.Get(append(receiptsPrefix, hash[:]...))
 	if len(data) == 0 {
 		return nil
 	}
 	var receipt types.ReceiptForStorage
 	err := rlp.DecodeBytes(data, &receipt)
 	if err != nil {
-		glog.V(logger.Core).Infoln("GetReceipt err:", err)
+		log.Error("Invalid receipt RLP", "hash", hash, "err", err)
 	}
 	return (*types.Receipt)(&receipt)
 }
@@ -295,7 +302,7 @@ func GetReceipt(db ethdb.Database, txHash common.Hash) *types.Receipt {
 func WriteCanonicalHash(db ethdb.Database, hash common.Hash, number uint64) error {
 	key := append(append(headerPrefix, encodeBlockNumber(number)...), numSuffix...)
 	if err := db.Put(key, hash.Bytes()); err != nil {
-		glog.Fatalf("failed to store number to hash mapping into database: %v", err)
+		log.Crit("Failed to store number to hash mapping", "err", err)
 	}
 	return nil
 }
@@ -303,7 +310,7 @@ func WriteCanonicalHash(db ethdb.Database, hash common.Hash, number uint64) erro
 // WriteHeadHeaderHash stores the head header's hash.
 func WriteHeadHeaderHash(db ethdb.Database, hash common.Hash) error {
 	if err := db.Put(headHeaderKey, hash.Bytes()); err != nil {
-		glog.Fatalf("failed to store last header's hash into database: %v", err)
+		log.Crit("Failed to store last header's hash", "err", err)
 	}
 	return nil
 }
@@ -311,7 +318,7 @@ func WriteHeadHeaderHash(db ethdb.Database, hash common.Hash) error {
 // WriteHeadBlockHash stores the head block's hash.
 func WriteHeadBlockHash(db ethdb.Database, hash common.Hash) error {
 	if err := db.Put(headBlockKey, hash.Bytes()); err != nil {
-		glog.Fatalf("failed to store last block's hash into database: %v", err)
+		log.Crit("Failed to store last block's hash", "err", err)
 	}
 	return nil
 }
@@ -319,7 +326,7 @@ func WriteHeadBlockHash(db ethdb.Database, hash common.Hash) error {
 // WriteHeadFastBlockHash stores the fast head block's hash.
 func WriteHeadFastBlockHash(db ethdb.Database, hash common.Hash) error {
 	if err := db.Put(headFastKey, hash.Bytes()); err != nil {
-		glog.Fatalf("failed to store last fast block's hash into database: %v", err)
+		log.Crit("Failed to store last fast block's hash", "err", err)
 	}
 	return nil
 }
@@ -335,13 +342,12 @@ func WriteHeader(db ethdb.Database, header *types.Header) error {
 	encNum := encodeBlockNumber(num)
 	key := append(blockHashPrefix, hash...)
 	if err := db.Put(key, encNum); err != nil {
-		glog.Fatalf("failed to store hash to number mapping into database: %v", err)
+		log.Crit("Failed to store hash to number mapping", "err", err)
 	}
 	key = append(append(headerPrefix, encNum...), hash...)
 	if err := db.Put(key, data); err != nil {
-		glog.Fatalf("failed to store header into database: %v", err)
+		log.Crit("Failed to store header", "err", err)
 	}
-	glog.V(logger.Debug).Infof("stored header #%v [%x…]", header.Number, hash[:4])
 	return nil
 }
 
@@ -358,9 +364,8 @@ func WriteBody(db ethdb.Database, hash common.Hash, number uint64, body *types.B
 func WriteBodyRLP(db ethdb.Database, hash common.Hash, number uint64, rlp rlp.RawValue) error {
 	key := append(append(bodyPrefix, encodeBlockNumber(number)...), hash.Bytes()...)
 	if err := db.Put(key, rlp); err != nil {
-		glog.Fatalf("failed to store block body into database: %v", err)
+		log.Crit("Failed to store block body", "err", err)
 	}
-	glog.V(logger.Debug).Infof("stored block body [%x…]", hash.Bytes()[:4])
 	return nil
 }
 
@@ -372,9 +377,8 @@ func WriteTd(db ethdb.Database, hash common.Hash, number uint64, td *big.Int) er
 	}
 	key := append(append(append(headerPrefix, encodeBlockNumber(number)...), hash.Bytes()...), tdSuffix...)
 	if err := db.Put(key, data); err != nil {
-		glog.Fatalf("failed to store block total difficulty into database: %v", err)
+		log.Crit("Failed to store block total difficulty", "err", err)
 	}
-	glog.V(logger.Debug).Infof("stored block total difficulty [%x…]: %v", hash.Bytes()[:4], td)
 	return nil
 }
 
@@ -407,9 +411,8 @@ func WriteBlockReceipts(db ethdb.Database, hash common.Hash, number uint64, rece
 	// Store the flattened receipt slice
 	key := append(append(blockReceiptsPrefix, encodeBlockNumber(number)...), hash.Bytes()...)
 	if err := db.Put(key, bytes); err != nil {
-		glog.Fatalf("failed to store block receipts into database: %v", err)
+		log.Crit("Failed to store block receipts", "err", err)
 	}
-	glog.V(logger.Debug).Infof("stored block receipts [%x…]", hash.Bytes()[:4])
 	return nil
 }
 
@@ -427,7 +430,7 @@ func WriteTransactions(db ethdb.Database, block *types.Block) error {
 		if err != nil {
 			return err
 		}
-		if err := batch.Put(tx.Hash().Bytes(), data); err != nil {
+		if err = batch.Put(tx.Hash().Bytes(), data); err != nil {
 			return err
 		}
 		// Encode and queue up the transaction metadata for storage
@@ -450,7 +453,7 @@ func WriteTransactions(db ethdb.Database, block *types.Block) error {
 	}
 	// Write the scheduled data into the database
 	if err := batch.Write(); err != nil {
-		glog.Fatalf("failed to store transactions into database: %v", err)
+		log.Crit("Failed to store transactions", "err", err)
 	}
 	return nil
 }
@@ -482,7 +485,7 @@ func WriteReceipts(db ethdb.Database, receipts types.Receipts) error {
 	}
 	// Write the scheduled data into the database
 	if err := batch.Write(); err != nil {
-		glog.Fatalf("failed to store receipts into database: %v", err)
+		log.Crit("Failed to store receipts", "err", err)
 	}
 	return nil
 }
@@ -532,24 +535,6 @@ func DeleteReceipt(db ethdb.Database, hash common.Hash) {
 	db.Delete(append(receiptsPrefix, hash.Bytes()...))
 }
 
-// [deprecated by the header/block split, remove eventually]
-// GetBlockByHashOld returns the old combined block corresponding to the hash
-// or nil if not found. This method is only used by the upgrade mechanism to
-// access the old combined block representation. It will be dropped after the
-// network transitions to eth/63.
-func GetBlockByHashOld(db ethdb.Database, hash common.Hash) *types.Block {
-	data, _ := db.Get(append(oldBlockHashPrefix, hash[:]...))
-	if len(data) == 0 {
-		return nil
-	}
-	var block types.StorageBlock
-	if err := rlp.Decode(bytes.NewReader(data), &block); err != nil {
-		glog.V(logger.Error).Infof("invalid block RLP for hash %x: %v", hash, err)
-		return nil
-	}
-	return (*types.Block)(&block)
-}
-
 // returns a formatted MIP mapped key by adding prefix, canonical number and level
 //
 // ex. fn(98, 1000) = (prefix || 1000 || 0)
@@ -564,6 +549,9 @@ func mipmapKey(num, level uint64) []byte {
 // WriteMapmapBloom writes each address included in the receipts' logs to the
 // MIP bloom bin.
 func WriteMipmapBloom(db ethdb.Database, number uint64, receipts types.Receipts) error {
+	mipmapBloomMu.Lock()
+	defer mipmapBloomMu.Unlock()
+
 	batch := db.NewBatch()
 	for _, level := range MIPMapLevels {
 		key := mipmapKey(number, level)
@@ -587,6 +575,33 @@ func WriteMipmapBloom(db ethdb.Database, number uint64, receipts types.Receipts)
 func GetMipmapBloom(db ethdb.Database, number, level uint64) types.Bloom {
 	bloomDat, _ := db.Get(mipmapKey(number, level))
 	return types.BytesToBloom(bloomDat)
+}
+
+// PreimageTable returns a Database instance with the key prefix for preimage entries.
+func PreimageTable(db ethdb.Database) ethdb.Database {
+	return ethdb.NewTable(db, preimagePrefix)
+}
+
+// WritePreimages writes the provided set of preimages to the database. `number` is the
+// current block number, and is used for debug messages only.
+func WritePreimages(db ethdb.Database, number uint64, preimages map[common.Hash][]byte) error {
+	table := PreimageTable(db)
+	batch := table.NewBatch()
+	hitCount := 0
+	for hash, preimage := range preimages {
+		if _, err := table.Get(hash.Bytes()); err != nil {
+			batch.Put(hash.Bytes(), preimage)
+			hitCount++
+		}
+	}
+	preimageCounter.Inc(int64(len(preimages)))
+	preimageHitCounter.Inc(int64(hitCount))
+	if hitCount > 0 {
+		if err := batch.Write(); err != nil {
+			return fmt.Errorf("preimage write fail for block %d: %v", number, err)
+		}
+	}
+	return nil
 }
 
 // GetBlockChainVersion reads the version number from db.

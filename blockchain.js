@@ -139,7 +139,7 @@ switch (args[0]) {
           	"timestamp": "0x0",
           	"parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
           	"extraData": "0x0",
-          	"gasLimit": "0xE8D4A51000",
+          	"gasLimit": "0x47E7C4",
           	"difficulty": "0x200",
           	"mixhash": "0x0000000000000000000000000000000000000000000000000000000000000000",
               "coinbase": accounts.admin.address.substring(2),

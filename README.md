@@ -2,13 +2,15 @@
 
 ## Install
 
+Install go client from https://golang.org/doc/install
+
 ```sh
 git clone https://github.com/AugustoL/ETHPrivTestnet
-cd go-ethereum && make
+cd go-ethereum && make geth
 cd .. && npm install
 ```
 
-# Go-Ethereum (edited 1.5.4 version)
+# Go-Ethereum (edited 1.6.1 version)
 
 The go-ethereum client that is used is an edited version that will decrease significantly the mining difficulty allowing much fast mining.
 

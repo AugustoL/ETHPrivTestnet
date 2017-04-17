@@ -78,7 +78,7 @@ func (bi *BigInts) Size() int {
 }
 
 // Get returns the bigint at the given index from the slice.
-func (bi *BigInts) Get(index int) (*BigInt, error) {
+func (bi *BigInts) Get(index int) (bigint *BigInt, _ error) {
 	if index < 0 || index >= len(bi.bigints) {
 		return nil, errors.New("index out of bounds")
 	}
@@ -92,4 +92,9 @@ func (bi *BigInts) Set(index int, bigint *BigInt) error {
 	}
 	bi.bigints[index] = bigint.bigint
 	return nil
+}
+
+// GetString returns the value of x as a formatted string in some number base.
+func (bi *BigInt) GetString(base int) string {
+	return bi.bigint.Text(base)
 }

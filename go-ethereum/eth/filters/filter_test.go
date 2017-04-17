@@ -17,27 +17,25 @@
 package filters
 
 import (
+	"context"
 	"io/ioutil"
 	"math/big"
 	"os"
 	"testing"
 
-	"golang.org/x/net/context"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/event"
+	"github.com/ethereum/go-ethereum/params"
 )
 
 func makeReceipt(addr common.Address) *types.Receipt {
 	receipt := types.NewReceipt(nil, new(big.Int))
-	receipt.Logs = vm.Logs{
-		&vm.Log{Address: addr},
+	receipt.Logs = []*types.Log{
+		{Address: addr},
 	}
 	receipt.Bloom = types.CreateBloom(types.Receipts{receipt})
 	return receipt
@@ -62,7 +60,7 @@ func BenchmarkMipmaps(b *testing.B) {
 	)
 	defer db.Close()
 
-	genesis := core.WriteGenesisBlockForTesting(db, core.GenesisAccount{Address: addr1, Balance: big.NewInt(1000000)})
+	genesis := core.GenesisBlockForTesting(db, addr1, big.NewInt(1000000))
 	chain, receipts := core.GenerateChain(params.TestChainConfig, genesis, db, 100010, func(i int, gen *core.BlockGen) {
 		var receipts types.Receipts
 		switch i {
@@ -114,7 +112,7 @@ func BenchmarkMipmaps(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		logs, _ := filter.Find(context.Background())
 		if len(logs) != 4 {
-			b.Fatal("expected 4 log, got", len(logs))
+			b.Fatal("expected 4 logs, got", len(logs))
 		}
 	}
 }
@@ -140,14 +138,14 @@ func TestFilters(t *testing.T) {
 	)
 	defer db.Close()
 
-	genesis := core.WriteGenesisBlockForTesting(db, core.GenesisAccount{Address: addr, Balance: big.NewInt(1000000)})
+	genesis := core.GenesisBlockForTesting(db, addr, big.NewInt(1000000))
 	chain, receipts := core.GenerateChain(params.TestChainConfig, genesis, db, 1000, func(i int, gen *core.BlockGen) {
 		var receipts types.Receipts
 		switch i {
 		case 1:
 			receipt := types.NewReceipt(nil, new(big.Int))
-			receipt.Logs = vm.Logs{
-				&vm.Log{
+			receipt.Logs = []*types.Log{
+				{
 					Address: addr,
 					Topics:  []common.Hash{hash1},
 				},
@@ -156,8 +154,8 @@ func TestFilters(t *testing.T) {
 			receipts = types.Receipts{receipt}
 		case 2:
 			receipt := types.NewReceipt(nil, new(big.Int))
-			receipt.Logs = vm.Logs{
-				&vm.Log{
+			receipt.Logs = []*types.Log{
+				{
 					Address: addr,
 					Topics:  []common.Hash{hash2},
 				},
@@ -166,8 +164,8 @@ func TestFilters(t *testing.T) {
 			receipts = types.Receipts{receipt}
 		case 998:
 			receipt := types.NewReceipt(nil, new(big.Int))
-			receipt.Logs = vm.Logs{
-				&vm.Log{
+			receipt.Logs = []*types.Log{
+				{
 					Address: addr,
 					Topics:  []common.Hash{hash3},
 				},
@@ -176,8 +174,8 @@ func TestFilters(t *testing.T) {
 			receipts = types.Receipts{receipt}
 		case 999:
 			receipt := types.NewReceipt(nil, new(big.Int))
-			receipt.Logs = vm.Logs{
-				&vm.Log{
+			receipt.Logs = []*types.Log{
+				{
 					Address: addr,
 					Topics:  []common.Hash{hash4},
 				},
@@ -211,7 +209,7 @@ func TestFilters(t *testing.T) {
 
 	filter := New(backend, true)
 	filter.SetAddresses([]common.Address{addr})
-	filter.SetTopics([][]common.Hash{[]common.Hash{hash1, hash2, hash3, hash4}})
+	filter.SetTopics([][]common.Hash{{hash1, hash2, hash3, hash4}})
 	filter.SetBeginBlock(0)
 	filter.SetEndBlock(-1)
 
@@ -222,7 +220,7 @@ func TestFilters(t *testing.T) {
 
 	filter = New(backend, true)
 	filter.SetAddresses([]common.Address{addr})
-	filter.SetTopics([][]common.Hash{[]common.Hash{hash3}})
+	filter.SetTopics([][]common.Hash{{hash3}})
 	filter.SetBeginBlock(900)
 	filter.SetEndBlock(999)
 	logs, _ = filter.Find(context.Background())
@@ -235,7 +233,7 @@ func TestFilters(t *testing.T) {
 
 	filter = New(backend, true)
 	filter.SetAddresses([]common.Address{addr})
-	filter.SetTopics([][]common.Hash{[]common.Hash{hash3}})
+	filter.SetTopics([][]common.Hash{{hash3}})
 	filter.SetBeginBlock(990)
 	filter.SetEndBlock(-1)
 	logs, _ = filter.Find(context.Background())
@@ -247,7 +245,7 @@ func TestFilters(t *testing.T) {
 	}
 
 	filter = New(backend, true)
-	filter.SetTopics([][]common.Hash{[]common.Hash{hash1, hash2}})
+	filter.SetTopics([][]common.Hash{{hash1, hash2}})
 	filter.SetBeginBlock(1)
 	filter.SetEndBlock(10)
 
@@ -258,7 +256,7 @@ func TestFilters(t *testing.T) {
 
 	failHash := common.BytesToHash([]byte("fail"))
 	filter = New(backend, true)
-	filter.SetTopics([][]common.Hash{[]common.Hash{failHash}})
+	filter.SetTopics([][]common.Hash{{failHash}})
 	filter.SetBeginBlock(0)
 	filter.SetEndBlock(-1)
 
@@ -279,7 +277,7 @@ func TestFilters(t *testing.T) {
 	}
 
 	filter = New(backend, true)
-	filter.SetTopics([][]common.Hash{[]common.Hash{failHash}, []common.Hash{hash1}})
+	filter.SetTopics([][]common.Hash{{failHash}, {hash1}})
 	filter.SetBeginBlock(0)
 	filter.SetEndBlock(-1)
 

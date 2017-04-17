@@ -16,7 +16,7 @@
 
 // Package geth contains the simplified mobile APIs to go-ethereum.
 //
-// The scope of this package is *not* to allow writing a custom Ethereun client
+// The scope of this package is *not* to allow writing a custom Ethereum client
 // with pieces plucked from go-ethereum, rather to allow writing native dapps on
 // mobile platforms. Keep this in mind when using or extending this package!
 //
@@ -50,6 +50,10 @@
 // a go slice with the methods `Size`, `Get` and `Set`. Further slice operations
 // should not be provided to limit the remote code complexity. Arrays should be
 // avoided as much as possible since they complicate bounds checking.
+//
+// If a method has multiple return values (e.g. some return + an error), those
+// are generated as output arguments in ObjC. To avoid weird generated names like
+// ret_0 for them, please always assign names to output variables if tuples.
 //
 // Note, a panic *cannot* cross over language boundaries, instead will result in
 // an undebuggable SEGFAULT in the process. For error handling only ever use error

@@ -17,12 +17,12 @@
 package les
 
 import (
+	"context"
 	"time"
 
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/eth/downloader"
 	"github.com/ethereum/go-ethereum/light"
-	"golang.org/x/net/context"
 )
 
 const (
@@ -43,12 +43,12 @@ func (pm *ProtocolManager) syncer() {
 	for {
 		select {
 		case <-pm.newPeerCh:
-/*			// Make sure we have peers to select from, then sync
-			if pm.peers.Len() < minDesiredPeerCount {
-				break
-			}
-			go pm.synchronise(pm.peers.BestPeer())
-*/
+			/*			// Make sure we have peers to select from, then sync
+						if pm.peers.Len() < minDesiredPeerCount {
+							break
+						}
+						go pm.synchronise(pm.peers.BestPeer())
+			*/
 		/*case <-forceSync:
 		// Force a sync even if not enough peers are present
 		go pm.synchronise(pm.peers.BestPeer())
@@ -77,8 +77,8 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 		return
 	}
 
-	ctx, _ := context.WithTimeout(context.Background(), time.Second*5)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
 	pm.blockchain.(*light.LightChain).SyncCht(ctx)
-
 	pm.downloader.Synchronise(peer.id, peer.Head(), peer.Td(), downloader.LightSync)
 }

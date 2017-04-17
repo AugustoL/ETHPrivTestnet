@@ -24,9 +24,11 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/consensus/ethash"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/eth/downloader"
 	"github.com/ethereum/go-ethereum/ethdb"
@@ -35,16 +37,18 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 )
 
+var bigTxGas = new(big.Int).SetUint64(params.TxGas)
+
 // Tests that protocol versions and modes of operations are matched up properly.
 func TestProtocolCompatibility(t *testing.T) {
 	// Define the compatibility chart
 	tests := []struct {
 		version    uint
-		fastSync   bool
+		mode       downloader.SyncMode
 		compatible bool
 	}{
-		{61, false, true}, {62, false, true}, {63, false, true},
-		{61, true, false}, {62, true, false}, {63, true, true},
+		{61, downloader.FullSync, true}, {62, downloader.FullSync, true}, {63, downloader.FullSync, true},
+		{61, downloader.FastSync, false}, {62, downloader.FastSync, false}, {63, downloader.FastSync, true},
 	}
 	// Make sure anything we screw up is restored
 	backup := ProtocolVersions
@@ -54,7 +58,7 @@ func TestProtocolCompatibility(t *testing.T) {
 	for i, tt := range tests {
 		ProtocolVersions = []uint{tt.version}
 
-		pm, err := newTestProtocolManager(tt.fastSync, 0, nil, nil)
+		pm, err := newTestProtocolManager(tt.mode, 0, nil, nil)
 		if pm != nil {
 			defer pm.Stop()
 		}
@@ -69,13 +73,13 @@ func TestGetBlockHeaders62(t *testing.T) { testGetBlockHeaders(t, 62) }
 func TestGetBlockHeaders63(t *testing.T) { testGetBlockHeaders(t, 63) }
 
 func testGetBlockHeaders(t *testing.T, protocol int) {
-	pm := newTestProtocolManagerMust(t, false, downloader.MaxHashFetch+15, nil, nil)
+	pm := newTestProtocolManagerMust(t, downloader.FullSync, downloader.MaxHashFetch+15, nil, nil)
 	peer, _ := newTestPeer("peer", protocol, pm, true)
 	defer peer.close()
 
 	// Create a "random" unknown hash for testing
 	var unknown common.Hash
-	for i, _ := range unknown {
+	for i := range unknown {
 		unknown[i] = byte(i)
 	}
 	// Create a batch of tests for various scenarios
@@ -228,7 +232,7 @@ func TestGetBlockBodies62(t *testing.T) { testGetBlockBodies(t, 62) }
 func TestGetBlockBodies63(t *testing.T) { testGetBlockBodies(t, 63) }
 
 func testGetBlockBodies(t *testing.T, protocol int) {
-	pm := newTestProtocolManagerMust(t, false, downloader.MaxBlockFetch+15, nil, nil)
+	pm := newTestProtocolManagerMust(t, downloader.FullSync, downloader.MaxBlockFetch+15, nil, nil)
 	peer, _ := newTestPeer("peer", protocol, pm, true)
 	defer peer.close()
 
@@ -246,17 +250,17 @@ func testGetBlockBodies(t *testing.T, protocol int) {
 		{limit + 1, nil, nil, limit},                                             // No more than the possible block count should be returned
 		{0, []common.Hash{pm.blockchain.Genesis().Hash()}, []bool{true}, 1},      // The genesis block should be retrievable
 		{0, []common.Hash{pm.blockchain.CurrentBlock().Hash()}, []bool{true}, 1}, // The chains head block should be retrievable
-		{0, []common.Hash{common.Hash{}}, []bool{false}, 0},                      // A non existent block should not be returned
+		{0, []common.Hash{{}}, []bool{false}, 0},                                 // A non existent block should not be returned
 
 		// Existing and non-existing blocks interleaved should not cause problems
 		{0, []common.Hash{
-			common.Hash{},
+			{},
 			pm.blockchain.GetBlockByNumber(1).Hash(),
-			common.Hash{},
+			{},
 			pm.blockchain.GetBlockByNumber(10).Hash(),
-			common.Hash{},
+			{},
 			pm.blockchain.GetBlockByNumber(100).Hash(),
-			common.Hash{},
+			{},
 		}, []bool{false, true, false, true, false, true, false}, 3},
 	}
 	// Run each of the tests and verify the results against the chain
@@ -311,13 +315,13 @@ func testGetNodeData(t *testing.T, protocol int) {
 		switch i {
 		case 0:
 			// In block 1, the test bank sends account #1 some ether.
-			tx, _ := types.NewTransaction(block.TxNonce(testBank.Address), acc1Addr, big.NewInt(10000), params.TxGas, nil, nil).SignECDSA(signer, testBankKey)
+			tx, _ := types.SignTx(types.NewTransaction(block.TxNonce(testBank), acc1Addr, big.NewInt(10000), bigTxGas, nil, nil), signer, testBankKey)
 			block.AddTx(tx)
 		case 1:
 			// In block 2, the test bank sends some more ether to account #1.
 			// acc1Addr passes it on to account #2.
-			tx1, _ := types.NewTransaction(block.TxNonce(testBank.Address), acc1Addr, big.NewInt(1000), params.TxGas, nil, nil).SignECDSA(signer, testBankKey)
-			tx2, _ := types.NewTransaction(block.TxNonce(acc1Addr), acc2Addr, big.NewInt(1000), params.TxGas, nil, nil).SignECDSA(signer, acc1Key)
+			tx1, _ := types.SignTx(types.NewTransaction(block.TxNonce(testBank), acc1Addr, big.NewInt(1000), bigTxGas, nil, nil), signer, testBankKey)
+			tx2, _ := types.SignTx(types.NewTransaction(block.TxNonce(acc1Addr), acc2Addr, big.NewInt(1000), bigTxGas, nil, nil), signer, acc1Key)
 			block.AddTx(tx1)
 			block.AddTx(tx2)
 		case 2:
@@ -335,7 +339,7 @@ func testGetNodeData(t *testing.T, protocol int) {
 		}
 	}
 	// Assemble the test environment
-	pm := newTestProtocolManagerMust(t, false, 4, generator, nil)
+	pm := newTestProtocolManagerMust(t, downloader.FullSync, 4, generator, nil)
 	peer, _ := newTestPeer("peer", protocol, pm, true)
 	defer peer.close()
 
@@ -368,7 +372,7 @@ func testGetNodeData(t *testing.T, protocol int) {
 	for i := 0; i < len(data); i++ {
 		statedb.Put(hashes[i].Bytes(), data[i])
 	}
-	accounts := []common.Address{testBank.Address, acc1Addr, acc2Addr}
+	accounts := []common.Address{testBank, acc1Addr, acc2Addr}
 	for i := uint64(0); i <= pm.blockchain.CurrentBlock().NumberU64(); i++ {
 		trie, _ := state.New(pm.blockchain.GetBlockByNumber(i).Root(), statedb)
 
@@ -403,13 +407,13 @@ func testGetReceipt(t *testing.T, protocol int) {
 		switch i {
 		case 0:
 			// In block 1, the test bank sends account #1 some ether.
-			tx, _ := types.NewTransaction(block.TxNonce(testBank.Address), acc1Addr, big.NewInt(10000), params.TxGas, nil, nil).SignECDSA(signer, testBankKey)
+			tx, _ := types.SignTx(types.NewTransaction(block.TxNonce(testBank), acc1Addr, big.NewInt(10000), bigTxGas, nil, nil), signer, testBankKey)
 			block.AddTx(tx)
 		case 1:
 			// In block 2, the test bank sends some more ether to account #1.
 			// acc1Addr passes it on to account #2.
-			tx1, _ := types.NewTransaction(block.TxNonce(testBank.Address), acc1Addr, big.NewInt(1000), params.TxGas, nil, nil).SignECDSA(signer, testBankKey)
-			tx2, _ := types.NewTransaction(block.TxNonce(acc1Addr), acc2Addr, big.NewInt(1000), params.TxGas, nil, nil).SignECDSA(signer, acc1Key)
+			tx1, _ := types.SignTx(types.NewTransaction(block.TxNonce(testBank), acc1Addr, big.NewInt(1000), bigTxGas, nil, nil), signer, testBankKey)
+			tx2, _ := types.SignTx(types.NewTransaction(block.TxNonce(acc1Addr), acc2Addr, big.NewInt(1000), bigTxGas, nil, nil), signer, acc1Key)
 			block.AddTx(tx1)
 			block.AddTx(tx2)
 		case 2:
@@ -427,7 +431,7 @@ func testGetReceipt(t *testing.T, protocol int) {
 		}
 	}
 	// Assemble the test environment
-	pm := newTestProtocolManagerMust(t, false, 4, generator, nil)
+	pm := newTestProtocolManagerMust(t, downloader.FullSync, 4, generator, nil)
 	peer, _ := newTestPeer("peer", protocol, pm, true)
 	defer peer.close()
 
@@ -465,13 +469,14 @@ func testDAOChallenge(t *testing.T, localForked, remoteForked bool, timeout bool
 	// Create a DAO aware protocol manager
 	var (
 		evmux         = new(event.TypeMux)
-		pow           = new(core.FakePow)
+		pow           = ethash.NewFaker()
 		db, _         = ethdb.NewMemDatabase()
-		genesis       = core.WriteGenesisBlockForTesting(db)
 		config        = &params.ChainConfig{DAOForkBlock: big.NewInt(1), DAOForkSupport: localForked}
-		blockchain, _ = core.NewBlockChain(db, config, pow, evmux)
+		gspec         = &core.Genesis{Config: config}
+		genesis       = gspec.MustCommit(db)
+		blockchain, _ = core.NewBlockChain(db, config, pow, evmux, vm.Config{})
 	)
-	pm, err := NewProtocolManager(config, false, NetworkId, 1000, evmux, new(testTxPool), pow, blockchain, db)
+	pm, err := NewProtocolManager(config, downloader.FullSync, DefaultConfig.NetworkId, 1000, evmux, new(testTxPool), pow, blockchain, db)
 	if err != nil {
 		t.Fatalf("failed to start test protocol manager: %v", err)
 	}
@@ -491,7 +496,7 @@ func testDAOChallenge(t *testing.T, localForked, remoteForked bool, timeout bool
 	if err := p2p.ExpectMsg(peer.app, GetBlockHeadersMsg, challenge); err != nil {
 		t.Fatalf("challenge mismatch: %v", err)
 	}
-	// Create a block to reply to the challenge if no timeout is simualted
+	// Create a block to reply to the challenge if no timeout is simulated
 	if !timeout {
 		blocks, _ := core.GenerateChain(&params.ChainConfig{}, genesis, db, 1, func(i int, block *core.BlockGen) {
 			if remoteForked {

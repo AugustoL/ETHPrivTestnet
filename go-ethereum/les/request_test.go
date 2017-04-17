@@ -17,6 +17,7 @@
 package les
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -25,7 +26,6 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/light"
-	"golang.org/x/net/context"
 )
 
 var testBankSecureTrieKey = secAddr(testBankAddress)
@@ -71,6 +71,12 @@ func testAccess(t *testing.T, protocol int, fn accessTestFn) {
 	pm, db, _ := newTestProtocolManagerMust(t, false, 4, testChainGen)
 	lpm, ldb, odr := newTestProtocolManagerMust(t, true, 0, nil)
 	_, err1, lpeer, err2 := newTestPeerPair("peer", protocol, pm, lpm)
+	pool := &testServerPool{}
+	lpm.reqDist = newRequestDistributor(pool.getAllPeers, lpm.quitSync)
+	odr.reqDist = lpm.reqDist
+	pool.setPeer(lpeer)
+	odr.serverPool = pool
+	lpeer.hasBlock = func(common.Hash, uint64) bool { return true }
 	select {
 	case <-time.After(time.Millisecond * 100):
 	case err := <-err1:
@@ -85,7 +91,9 @@ func testAccess(t *testing.T, protocol int, fn accessTestFn) {
 		for i := uint64(0); i <= pm.blockchain.CurrentHeader().Number.Uint64(); i++ {
 			bhash := core.GetCanonicalHash(db, i)
 			if req := fn(ldb, bhash, i); req != nil {
-				ctx, _ := context.WithTimeout(context.Background(), 200*time.Millisecond)
+				ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+				defer cancel()
+
 				err := odr.Retrieve(ctx, req)
 				got := err == nil
 				exp := i < expFail
@@ -100,11 +108,10 @@ func testAccess(t *testing.T, protocol int, fn accessTestFn) {
 	}
 
 	// temporarily remove peer to test odr fails
-	odr.UnregisterPeer(lpeer)
+	pool.setPeer(nil)
 	// expect retrievals to fail (except genesis block) without a les peer
 	test(0)
-	odr.RegisterPeer(lpeer)
+	pool.setPeer(lpeer)
 	// expect all retrievals to pass
 	test(5)
-	odr.UnregisterPeer(lpeer)
 }

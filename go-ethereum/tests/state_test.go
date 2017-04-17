@@ -243,6 +243,7 @@ func TestStateTestsRandom(t *testing.T) {
 
 	fns, _ := filepath.Glob("./files/StateTests/RandomTests/*")
 	for _, fn := range fns {
+		t.Log("running:", fn)
 		if err := RunStateTest(chainConfig, fn, StateSkipTests); err != nil {
 			t.Error(fn, err)
 		}

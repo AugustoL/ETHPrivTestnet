@@ -17,10 +17,12 @@
 package les
 
 import (
+	"context"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
@@ -31,13 +33,12 @@ import (
 	"github.com/ethereum/go-ethereum/internal/ethapi"
 	"github.com/ethereum/go-ethereum/light"
 	"github.com/ethereum/go-ethereum/params"
-	rpc "github.com/ethereum/go-ethereum/rpc"
-	"golang.org/x/net/context"
+	"github.com/ethereum/go-ethereum/rpc"
 )
 
 type LesApiBackend struct {
 	eth *LightEthereum
-	gpo *gasprice.LightPriceOracle
+	gpo *gasprice.Oracle
 }
 
 func (b *LesApiBackend) ChainConfig() *params.ChainConfig {
@@ -49,6 +50,7 @@ func (b *LesApiBackend) CurrentBlock() *types.Block {
 }
 
 func (b *LesApiBackend) SetHead(number uint64) {
+	b.eth.protocolManager.downloader.Cancel()
 	b.eth.blockchain.SetHead(number)
 }
 
@@ -88,16 +90,18 @@ func (b *LesApiBackend) GetTd(blockHash common.Hash) *big.Int {
 	return b.eth.blockchain.GetTdByHash(blockHash)
 }
 
-func (b *LesApiBackend) GetVMEnv(ctx context.Context, msg core.Message, state ethapi.State, header *types.Header) (vm.Environment, func() error, error) {
+func (b *LesApiBackend) GetEVM(ctx context.Context, msg core.Message, state ethapi.State, header *types.Header, vmCfg vm.Config) (*vm.EVM, func() error, error) {
 	stateDb := state.(*light.LightState).Copy()
 	addr := msg.From()
 	from, err := stateDb.GetOrNewStateObject(ctx, addr)
 	if err != nil {
 		return nil, nil, err
 	}
-	from.SetBalance(common.MaxBig)
-	env := light.NewEnv(ctx, stateDb, b.eth.chainConfig, b.eth.blockchain, msg, header, vm.Config{})
-	return env, env.Error, nil
+	from.SetBalance(math.MaxBig256)
+
+	vmstate := light.NewVMState(ctx, stateDb)
+	context := core.NewEVMContext(msg, header, b.eth.blockchain, nil)
+	return vm.NewEVM(context, vmstate, b.eth.chainConfig, vmCfg), vmstate.Error, nil
 }
 
 func (b *LesApiBackend) SendTx(ctx context.Context, signedTx *types.Transaction) error {
@@ -108,7 +112,7 @@ func (b *LesApiBackend) RemoveTx(txHash common.Hash) {
 	b.eth.txPool.RemoveTx(txHash)
 }
 
-func (b *LesApiBackend) GetPoolTransactions() types.Transactions {
+func (b *LesApiBackend) GetPoolTransactions() (types.Transactions, error) {
 	return b.eth.txPool.GetTransactions()
 }
 

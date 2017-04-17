@@ -18,15 +18,13 @@ package light
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/logger"
-	"github.com/ethereum/go-ethereum/logger/glog"
 	"github.com/ethereum/go-ethereum/rlp"
-	"golang.org/x/net/context"
 )
 
 var emptyCodeHash = crypto.Keccak256(nil)
@@ -108,10 +106,6 @@ func NewStateObject(address common.Address, odr OdrBackend) *StateObject {
 func (self *StateObject) MarkForDeletion() {
 	self.remove = true
 	self.dirty = true
-
-	if glog.V(logger.Core) {
-		glog.Infof("%x: #%d %v X\n", self.Address(), self.nonce, self.balance)
-	}
 }
 
 // getAddr gets the storage value at the given address from the trie
@@ -157,19 +151,11 @@ func (self *StateObject) SetState(k, value common.Hash) {
 // AddBalance adds the given amount to the account balance
 func (c *StateObject) AddBalance(amount *big.Int) {
 	c.SetBalance(new(big.Int).Add(c.balance, amount))
-
-	if glog.V(logger.Core) {
-		glog.Infof("%x: #%d %v (+ %v)\n", c.Address(), c.nonce, c.balance, amount)
-	}
 }
 
 // SubBalance subtracts the given amount from the account balance
 func (c *StateObject) SubBalance(amount *big.Int) {
 	c.SetBalance(new(big.Int).Sub(c.balance, amount))
-
-	if glog.V(logger.Core) {
-		glog.Infof("%x: #%d %v (- %v)\n", c.Address(), c.nonce, c.balance, amount)
-	}
 }
 
 // SetBalance sets the account balance to the given amount
@@ -179,7 +165,7 @@ func (c *StateObject) SetBalance(amount *big.Int) {
 }
 
 // ReturnGas returns the gas back to the origin. Used by the Virtual machine or Closures
-func (c *StateObject) ReturnGas(gas, price *big.Int) {}
+func (c *StateObject) ReturnGas(gas *big.Int) {}
 
 // Copy creates a copy of the state object
 func (self *StateObject) Copy() *StateObject {
@@ -203,7 +189,7 @@ func (self *StateObject) Copy() *StateObject {
 
 // empty returns whether the account is considered empty.
 func (self *StateObject) empty() bool {
-	return self.nonce == 0 && self.balance.BitLen() == 0 && bytes.Equal(self.codeHash, emptyCodeHash)
+	return self.nonce == 0 && self.balance.Sign() == 0 && bytes.Equal(self.codeHash, emptyCodeHash)
 }
 
 // Balance returns the account balance

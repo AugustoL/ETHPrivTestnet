@@ -14,9 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-// Contains all the wrappers from the accounts package to support client side key
-// management on mobile platforms.
-
 package geth
 
 import (
@@ -46,14 +43,46 @@ public class AndroidTest extends InstrumentationTestCase {
 	public AndroidTest() {}
 
 	public void testAccountManagement() {
+		// Create an encrypted keystore with light crypto parameters.
+		KeyStore ks = new KeyStore(getInstrumentation().getContext().getFilesDir() + "/keystore", Geth.LightScryptN, Geth.LightScryptP);
+
 		try {
-			AccountManager am = new AccountManager(getInstrumentation().getContext().getFilesDir() + "/keystore", Geth.LightScryptN, Geth.LightScryptP);
+			// Create a new account with the specified encryption passphrase.
+			Account newAcc = ks.newAccount("Creation password");
 
-			Account newAcc = am.newAccount("Creation password");
-			byte[] jsonAcc = am.exportKey(newAcc, "Creation password", "Export password");
+			// Export the newly created account with a different passphrase. The returned
+			// data from this method invocation is a JSON encoded, encrypted key-file.
+			byte[] jsonAcc = ks.exportKey(newAcc, "Creation password", "Export password");
 
-			am.deleteAccount(newAcc, "Creation password");
-			Account impAcc = am.importKey(jsonAcc, "Export password", "Import password");
+			// Update the passphrase on the account created above inside the local keystore.
+			ks.updateAccount(newAcc, "Creation password", "Update password");
+
+			// Delete the account updated above from the local keystore.
+			ks.deleteAccount(newAcc, "Update password");
+
+			// Import back the account we've exported (and then deleted) above with yet
+			// again a fresh passphrase.
+			Account impAcc = ks.importKey(jsonAcc, "Export password", "Import password");
+
+			// Create a new account to sign transactions with
+			Account signer = ks.newAccount("Signer password");
+
+			Transaction tx = new Transaction(
+				1, new Address("0x0000000000000000000000000000000000000000"),
+				new BigInt(0), new BigInt(0), new BigInt(1), null); // Random empty transaction
+			BigInt chain = new BigInt(1); // Chain identifier of the main net
+
+			// Sign a transaction with a single authorization
+			Transaction signed = ks.signTxPassphrase(signer, "Signer password", tx, chain);
+
+			// Sign a transaction with multiple manually cancelled authorizations
+			ks.unlock(signer, "Signer password");
+			signed = ks.signTx(signer, tx, chain);
+			ks.lock(signer.getAddress());
+
+			// Sign a transaction with multiple automatically cancelled authorizations
+			ks.timedUnlock(signer, "Signer password", 1000000000);
+			signed = ks.signTx(signer, tx, chain);
 		} catch (Exception e) {
 			fail(e.toString());
 		}

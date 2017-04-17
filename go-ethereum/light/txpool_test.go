@@ -17,35 +17,39 @@
 package light
 
 import (
+	"context"
 	"math"
 	"math/big"
 	"testing"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/consensus/ethash"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/params"
-	"golang.org/x/net/context"
 )
 
 type testTxRelay struct {
-	send, nhMined, nhRollback, discard int
+	send, discard, mined chan int
 }
 
 func (self *testTxRelay) Send(txs types.Transactions) {
-	self.send = len(txs)
+	self.send <- len(txs)
 }
 
 func (self *testTxRelay) NewHead(head common.Hash, mined []common.Hash, rollback []common.Hash) {
-	self.nhMined = len(mined)
-	self.nhRollback = len(rollback)
+	m := len(mined)
+	if m != 0 {
+		self.mined <- m
+	}
 }
 
 func (self *testTxRelay) Discard(hashes []common.Hash) {
-	self.discard = len(hashes)
+	self.discard <- len(hashes)
 }
 
 const poolTestTxs = 1000
@@ -73,69 +77,69 @@ func txPoolTestChainGen(i int, block *core.BlockGen) {
 }
 
 func TestTxPool(t *testing.T) {
-	for i, _ := range testTx {
-		testTx[i], _ = types.NewTransaction(uint64(i), acc1Addr, big.NewInt(10000), params.TxGas, nil, nil).SignECDSA(types.HomesteadSigner{}, testBankKey)
+	for i := range testTx {
+		testTx[i], _ = types.SignTx(types.NewTransaction(uint64(i), acc1Addr, big.NewInt(10000), bigTxGas, nil, nil), types.HomesteadSigner{}, testBankKey)
 	}
 
 	var (
 		evmux   = new(event.TypeMux)
-		pow     = new(core.FakePow)
 		sdb, _  = ethdb.NewMemDatabase()
 		ldb, _  = ethdb.NewMemDatabase()
-		genesis = core.WriteGenesisBlockForTesting(sdb, core.GenesisAccount{Address: testBankAddress, Balance: testBankFunds})
+		gspec   = core.Genesis{Alloc: core.GenesisAlloc{testBankAddress: {Balance: testBankFunds}}}
+		genesis = gspec.MustCommit(sdb)
 	)
-	core.WriteGenesisBlockForTesting(ldb, core.GenesisAccount{Address: testBankAddress, Balance: testBankFunds})
+	gspec.MustCommit(ldb)
 	// Assemble the test environment
-	blockchain, _ := core.NewBlockChain(sdb, testChainConfig(), pow, evmux)
-	chainConfig := &params.ChainConfig{HomesteadBlock: new(big.Int)}
-	gchain, _ := core.GenerateChain(chainConfig, genesis, sdb, poolTestBlocks, txPoolTestChainGen)
+	blockchain, _ := core.NewBlockChain(sdb, params.TestChainConfig, ethash.NewFullFaker(), evmux, vm.Config{})
+	gchain, _ := core.GenerateChain(params.TestChainConfig, genesis, sdb, poolTestBlocks, txPoolTestChainGen)
 	if _, err := blockchain.InsertChain(gchain); err != nil {
 		panic(err)
 	}
 
 	odr := &testOdr{sdb: sdb, ldb: ldb}
-	relay := &testTxRelay{}
-	lightchain, _ := NewLightChain(odr, testChainConfig(), pow, evmux)
-	lightchain.SetValidator(bproc{})
+	relay := &testTxRelay{
+		send:    make(chan int, 1),
+		discard: make(chan int, 1),
+		mined:   make(chan int, 1),
+	}
+	lightchain, _ := NewLightChain(odr, params.TestChainConfig, ethash.NewFullFaker(), evmux)
 	txPermanent = 50
-	pool := NewTxPool(testChainConfig(), evmux, lightchain, relay)
+	pool := NewTxPool(params.TestChainConfig, evmux, lightchain, relay)
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
 
 	for ii, block := range gchain {
 		i := ii + 1
-		ctx, _ := context.WithTimeout(context.Background(), 200*time.Millisecond)
 		s := sentTx(i - 1)
 		e := sentTx(i)
 		for i := s; i < e; i++ {
-			relay.send = 0
 			pool.Add(ctx, testTx[i])
-			got := relay.send
+			got := <-relay.send
 			exp := 1
 			if got != exp {
 				t.Errorf("relay.Send expected len = %d, got %d", exp, got)
 			}
 		}
 
-		relay.nhMined = 0
-		relay.nhRollback = 0
-		relay.discard = 0
 		if _, err := lightchain.InsertHeaderChain([]*types.Header{block.Header()}, 1); err != nil {
 			panic(err)
 		}
-		time.Sleep(time.Millisecond * 30)
 
-		got := relay.nhMined
+		got := <-relay.mined
 		exp := minedTx(i) - minedTx(i-1)
 		if got != exp {
 			t.Errorf("relay.NewHead expected len(mined) = %d, got %d", exp, got)
 		}
 
-		got = relay.discard
 		exp = 0
 		if i > int(txPermanent)+1 {
 			exp = minedTx(i-int(txPermanent)-1) - minedTx(i-int(txPermanent)-2)
 		}
-		if got != exp {
-			t.Errorf("relay.Discard expected len = %d, got %d", exp, got)
+		if exp != 0 {
+			got = <-relay.discard
+			if got != exp {
+				t.Errorf("relay.Discard expected len = %d, got %d", exp, got)
+			}
 		}
 	}
 }

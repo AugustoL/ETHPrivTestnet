@@ -22,7 +22,7 @@ import (
 	"io"
 	"io/ioutil"
 
-	"github.com/ethereum/go-ethereum/accounts"
+	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -35,7 +35,7 @@ func NewTransactor(keyin io.Reader, passphrase string) (*TransactOpts, error) {
 	if err != nil {
 		return nil, err
 	}
-	key, err := accounts.DecryptKey(json, passphrase)
+	key, err := keystore.DecryptKey(json, passphrase)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +52,7 @@ func NewKeyedTransactor(key *ecdsa.PrivateKey) *TransactOpts {
 			if address != keyAddr {
 				return nil, errors.New("not authorized to sign this account")
 			}
-			signature, err := crypto.SignEthereum(signer.Hash(tx).Bytes(), key)
+			signature, err := crypto.Sign(signer.Hash(tx).Bytes(), key)
 			if err != nil {
 				return nil, err
 			}

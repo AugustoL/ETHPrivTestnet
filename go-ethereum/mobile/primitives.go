@@ -11,7 +11,7 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
-// You should have received s copy of the GNU Lesser General Public License
+// You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 // Contains various wrappers for primitive types.
@@ -32,7 +32,7 @@ func (s *Strings) Size() int {
 }
 
 // Get returns the string at the given index from the slice.
-func (s *Strings) Get(index int) (string, error) {
+func (s *Strings) Get(index int) (str string, _ error) {
 	if index < 0 || index >= len(s.strs) {
 		return "", errors.New("index out of bounds")
 	}

@@ -35,13 +35,14 @@ type LesTxRelay struct {
 	peerList     []*peer
 	peerStartPos int
 	lock         sync.RWMutex
+
+	reqDist *requestDistributor
 }
 
 func NewLesTxRelay() *LesTxRelay {
 	return &LesTxRelay{
 		txSent:    make(map[common.Hash]*ltrInfo),
 		txPending: make(map[common.Hash]struct{}),
-		ps:        newPeerSet(),
 	}
 }
 
@@ -108,11 +109,26 @@ func (self *LesTxRelay) send(txs types.Transactions, count int) {
 	}
 
 	for p, list := range sendTo {
-		cost := p.GetRequestCost(SendTxMsg, len(list))
-		go func(p *peer, list types.Transactions, cost uint64) {
-			p.fcServer.SendRequest(0, cost)
-			p.SendTxs(cost, list)
-		}(p, list, cost)
+		pp := p
+		ll := list
+
+		reqID := getNextReqID()
+		rq := &distReq{
+			getCost: func(dp distPeer) uint64 {
+				peer := dp.(*peer)
+				return peer.GetRequestCost(SendTxMsg, len(ll))
+			},
+			canSend: func(dp distPeer) bool {
+				return dp.(*peer) == pp
+			},
+			request: func(dp distPeer) func() {
+				peer := dp.(*peer)
+				cost := peer.GetRequestCost(SendTxMsg, len(ll))
+				peer.fcServer.QueueRequest(reqID, cost)
+				return func() { peer.SendTxs(reqID, cost, ll) }
+			},
+		}
+		self.reqDist.queue(rq)
 	}
 }
 
@@ -138,7 +154,7 @@ func (self *LesTxRelay) NewHead(head common.Hash, mined []common.Hash, rollback 
 	if len(self.txPending) > 0 {
 		txs := make(types.Transactions, len(self.txPending))
 		i := 0
-		for hash, _ := range self.txPending {
+		for hash := range self.txPending {
 			txs[i] = self.txSent[hash].tx
 			i++
 		}

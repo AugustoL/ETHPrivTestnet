@@ -20,9 +20,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
@@ -61,7 +59,7 @@ func (b *Bloom) Add(d *big.Int) {
 
 // Big converts b to a big integer.
 func (b Bloom) Big() *big.Int {
-	return common.Bytes2Big(b[:])
+	return new(big.Int).SetBytes(b[:])
 }
 
 func (b Bloom) Bytes() []byte {
@@ -73,17 +71,18 @@ func (b Bloom) Test(test *big.Int) bool {
 }
 
 func (b Bloom) TestBytes(test []byte) bool {
-	return b.Test(common.BytesToBig(test))
+	return b.Test(new(big.Int).SetBytes(test))
+
 }
 
-// MarshalJSON encodes b as a hex string with 0x prefix.
-func (b Bloom) MarshalJSON() ([]byte, error) {
-	return hexutil.Bytes(b[:]).MarshalJSON()
+// MarshalText encodes b as a hex string with 0x prefix.
+func (b Bloom) MarshalText() ([]byte, error) {
+	return hexutil.Bytes(b[:]).MarshalText()
 }
 
-// UnmarshalJSON b as a hex string with 0x prefix.
-func (b *Bloom) UnmarshalJSON(input []byte) error {
-	return hexutil.UnmarshalJSON("Bloom", input, b[:])
+// UnmarshalText b as a hex string with 0x prefix.
+func (b *Bloom) UnmarshalText(input []byte) error {
+	return hexutil.UnmarshalFixedText("Bloom", input, b[:])
 }
 
 func CreateBloom(receipts Receipts) Bloom {
@@ -95,17 +94,11 @@ func CreateBloom(receipts Receipts) Bloom {
 	return BytesToBloom(bin.Bytes())
 }
 
-func LogsBloom(logs vm.Logs) *big.Int {
+func LogsBloom(logs []*Log) *big.Int {
 	bin := new(big.Int)
 	for _, log := range logs {
-		data := make([]common.Hash, len(log.Topics))
 		bin.Or(bin, bloom9(log.Address.Bytes()))
-
-		for i, topic := range log.Topics {
-			data[i] = topic
-		}
-
-		for _, b := range data {
+		for _, b := range log.Topics {
 			bin.Or(bin, bloom9(b[:]))
 		}
 	}

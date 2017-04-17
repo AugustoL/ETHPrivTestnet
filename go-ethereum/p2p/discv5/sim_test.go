@@ -65,16 +65,12 @@ func TestSimTopics(t *testing.T) {
 	if runWithPlaygroundTime(t) {
 		return
 	}
-
-	// glog.SetV(6)
-	// glog.SetToStderr(true)
-
 	sim := newSimulation()
 	bootnode := sim.launchNode(false)
 
 	go func() {
 		nets := make([]*Network, 1024)
-		for i, _ := range nets {
+		for i := range nets {
 			net := sim.launchNode(false)
 			nets[i] = net
 			if err := net.SetFallbackNodes([]*Node{bootnode.Self()}); err != nil {
@@ -147,7 +143,7 @@ func TestSimTopics(t *testing.T) {
 func testHierarchicalTopics(i int) []Topic {
 	digits := strconv.FormatInt(int64(128+i/8), 2)
 	res := make([]Topic, 8)
-	for i, _ := range res {
+	for i := range res {
 		res[i] = Topic("foo" + digits[1:i+1])
 	}
 	return res
@@ -158,16 +154,12 @@ func TestSimTopicHierarchy(t *testing.T) {
 	if runWithPlaygroundTime(t) {
 		return
 	}
-
-	// glog.SetV(6)
-	// glog.SetToStderr(true)
-
 	sim := newSimulation()
 	bootnode := sim.launchNode(false)
 
 	go func() {
 		nets := make([]*Network, 1024)
-		for i, _ := range nets {
+		for i := range nets {
 			net := sim.launchNode(false)
 			nets[i] = net
 			if err := net.SetFallbackNodes([]*Node{bootnode.Self()}); err != nil {
