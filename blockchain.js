@@ -12,7 +12,7 @@ const BASE_PASSWORD = "password";
 
 const PORT = "8545";
 
-const NETWORK_ID = "123456";
+const NETWORK_ID = "6";
 
 const SEED_BALANCE = "20000000000000000000";
 
@@ -135,18 +135,20 @@ switch (args[0]) {
           console.log('Accounts file created.');
           console.log('Creating genesis..');
           var genesis = {
-          	"nonce": "0x1265616432",
-          	"timestamp": "0x0",
-          	"parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-          	"extraData": "0x0",
+            "config": {
+              "chainId": parseInt(NETWORK_ID),
+              "homesteadBlock": 0,
+              "eip155Block": 0,
+              "eip158Block": 0
+            },
           	"gasLimit": "0x47E7C4",
+            "gasPrice": "2000000",
           	"difficulty": "0x200",
-          	"mixhash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-              "coinbase": accounts.admin.address.substring(2),
+              "coinbase": '0x'+accounts.admin.address.substring(2),
               "alloc": {}
           }
           for (var a = 0; a < accounts.users.length; a++)
-            genesis.alloc[accounts.users[a].address.substring(2)] = { "balance": SEED_BALANCE};
+            genesis.alloc['0x'+accounts.users[a].address.substring(2)] = { "balance": SEED_BALANCE};
           fs.writeFileSync(BLOCKCHAIN_PATH+'/genesis.json', JSON.stringify(genesis, null, '    '));
           console.log('Genesis file created.');
         })
